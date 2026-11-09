@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Button, Dialog, TitledGreyBox } from '@pterodactyl/sdk';
+import { Badge, Button, Dialog, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, NamedIcon, TitledGreyBox } from '@pterodactyl/sdk';
 import type { ChannelOption, Rule, RuleInput } from '../api';
 import { plural } from '../lib/format';
-import Pill from './Pill';
 import RuleDialog from './RuleDialog';
 
 interface Props {
@@ -21,10 +20,25 @@ export default function RulesBox({ title, rules, channels, canManage, global, sa
     const [editing, setEditing] = useState<Rule | 'new' | null>(null);
     const [deleting, setDeleting] = useState<Rule | null>(null);
 
+    const newButton = (
+        <Button size='small' onClick={() => setEditing('new')}>
+            New rule
+        </Button>
+    );
+
     return (
         <TitledGreyBox title={title}>
             {rules.length === 0 ? (
-                <p className='mon:text-sm mon:text-muted-foreground'>No rules yet.</p>
+                <Empty size='compact'>
+                    <EmptyHeader>
+                        <EmptyMedia variant='icon'>
+                            <NamedIcon name='bell-plus' />
+                        </EmptyMedia>
+                        <EmptyTitle>No rules</EmptyTitle>
+                        <EmptyDescription>A rule raises an alert when usage stays above a limit or a server goes offline.</EmptyDescription>
+                    </EmptyHeader>
+                    {canManage && <EmptyContent>{newButton}</EmptyContent>}
+                </Empty>
             ) : (
                 <ul className='mon:grid mon:grid-cols-1 mon:gap-3'>
                     {rules.map((rule) => (
@@ -38,7 +52,7 @@ export default function RulesBox({ title, rules, channels, canManage, global, sa
                                 </p>
                             </div>
                             <div className='mon:ml-auto mon:flex mon:shrink-0 mon:items-center mon:gap-2'>
-                                {!rule.enabled && <Pill>Paused</Pill>}
+                                {!rule.enabled && <Badge variant='soft'>Paused</Badge>}
                                 {canManage && (
                                     <>
                                         <Button.Text size='xsmall' onClick={() => setEditing(rule)}>
@@ -54,13 +68,7 @@ export default function RulesBox({ title, rules, channels, canManage, global, sa
                     ))}
                 </ul>
             )}
-            {canManage && (
-                <div className='mon:mt-4 mon:flex mon:justify-end'>
-                    <Button size='small' onClick={() => setEditing('new')}>
-                        New rule
-                    </Button>
-                </div>
-            )}
+            {canManage && rules.length > 0 && <div className='mon:mt-4 mon:flex mon:justify-end'>{newButton}</div>}
             {editing && (
                 <RuleDialog
                     rule={editing === 'new' ? null : editing}

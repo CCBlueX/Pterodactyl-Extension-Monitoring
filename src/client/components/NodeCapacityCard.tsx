@@ -1,8 +1,7 @@
-import { NamedIcon, TitledGreyBox } from '@pterodactyl/sdk';
+import { Badge, NamedIcon, TitledGreyBox } from '@pterodactyl/sdk';
 import type { NodeHealth } from '../api';
 import { HOST_UNKNOWN, cpuText } from '../lib/capacity';
 import CapacityBar from './CapacityBar';
-import Pill from './Pill';
 
 function Note({ icon, children }: { icon: string; children: string }) {
     return (
@@ -25,7 +24,17 @@ export default function NodeCapacityCard({ node, wide = false }: { node: NodeHea
                     <h3 className='mon:truncate mon:font-header mon:text-sm mon:font-semibold mon:uppercase mon:tracking-wide mon:text-foreground' title={node.name}>
                         {node.name}
                     </h3>
-                    {node.reachable === false ? <Pill tone='danger'>Offline</Pill> : node.panel_host && <Pill>Runs the panel</Pill>}
+                    {node.reachable === false ? (
+                        <Badge variant='soft' tone='danger' className='mon:shrink-0'>
+                            Offline
+                        </Badge>
+                    ) : (
+                        node.panel_host && (
+                            <Badge variant='soft' className='mon:shrink-0 mon:whitespace-nowrap'>
+                                Runs the panel
+                            </Badge>
+                        )
+                    )}
                 </div>
             }
         >

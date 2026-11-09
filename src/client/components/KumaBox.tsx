@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Button, Input, TitledGreyBox } from '@pterodactyl/sdk';
+import { Badge, Button, Input, TitledGreyBox } from '@pterodactyl/sdk';
 import type { ServerMonitoring } from '../api';
 import { formatAgo } from '../lib/format';
-import Pill from './Pill';
 
 interface Props {
     push: ServerMonitoring['push'];
@@ -23,7 +22,15 @@ export default function KumaBox({ push, interval, pending, onSave }: Props) {
                         <span className='mon:min-w-0 mon:truncate mon:text-foreground' title={push.host}>
                             {push.host}
                         </span>
-                        {push.last_error ? <Pill tone='danger'>Failing</Pill> : push.last_up === null ? <Pill>Waiting</Pill> : push.last_up ? <Pill tone='success'>Up</Pill> : <Pill tone='danger'>Down</Pill>}
+                        {push.last_error ? (
+                            <Badge variant='soft' tone='danger'>Failing</Badge>
+                        ) : push.last_up === null ? (
+                            <Badge variant='soft'>Waiting</Badge>
+                        ) : push.last_up ? (
+                            <Badge variant='soft' tone='success'>Up</Badge>
+                        ) : (
+                            <Badge variant='soft' tone='danger'>Down</Badge>
+                        )}
                     </div>
                     <p className='mon:text-xs mon:break-words mon:text-muted-foreground'>{push.last_error ?? `Last heartbeat ${formatAgo(push.pushed_at)}.`}</p>
                     <div className='mon:flex mon:justify-end mon:gap-2'>

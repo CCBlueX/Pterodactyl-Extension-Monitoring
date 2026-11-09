@@ -1,6 +1,25 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Dialog, Input, Label, PageContentBlock, Select, Spinner, TitledGreyBox, httpErrorToHuman, toast } from '@pterodactyl/sdk';
+import {
+    Button,
+    Dialog,
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Input,
+    Label,
+    NamedIcon,
+    PageContentBlock,
+    Select,
+    ServerError,
+    Spinner,
+    TitledGreyBox,
+    httpErrorToHuman,
+    toast,
+} from '@pterodactyl/sdk';
 import { deleteChannel, getChannels, keys, saveChannel, testChannel, type Channel, type ChannelInput, type ChannelType } from '../api';
 
 interface Field {
@@ -49,14 +68,33 @@ export default function ChannelsScreen() {
     const type = TYPES.find((item) => item.value === editing?.input.type) ?? TYPES[0];
     const valid = editing !== null && editing.input.name.trim() !== '' && (editing.id !== undefined || type.fields.every((field) => field.optional || editing.input.config[field.key]?.trim()));
 
+    if (channels.isError && !channels.data) {
+        return <ServerError title='Could not load your channels' message={httpErrorToHuman(channels.error)} onRetry={() => channels.refetch()} />;
+    }
+
+    const addButton = (
+        <Button size='small' onClick={() => setEditing({ input: { name: '', type: 'discord', config: {} } })}>
+            Add channel
+        </Button>
+    );
+
     return (
         <PageContentBlock title='Alerts'>
             <TitledGreyBox title='Notification channels'>
                 <p className='mon:mb-4 mon:text-sm mon:text-muted-foreground'>Choose these channels in a server's Monitoring tab to get its alerts.</p>
                 {!channels.data ? (
-                    channels.isError ? <p className='mon:text-sm mon:text-destructive'>{httpErrorToHuman(channels.error)}</p> : <Spinner centered />
+                    <Spinner centered />
                 ) : channels.data.length === 0 ? (
-                    <p className='mon:text-sm mon:text-muted-foreground'>No channels yet.</p>
+                    <Empty size='compact'>
+                        <EmptyHeader>
+                            <EmptyMedia variant='icon'>
+                                <NamedIcon name='bell-ring' />
+                            </EmptyMedia>
+                            <EmptyTitle>No channels</EmptyTitle>
+                            <EmptyDescription>Send alerts to Discord, ntfy, Telegram, email or a webhook.</EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>{addButton}</EmptyContent>
+                    </Empty>
                 ) : (
                     <ul className='mon:grid mon:grid-cols-1 mon:gap-3'>
                         {channels.data.map((channel) => (
@@ -84,11 +122,7 @@ export default function ChannelsScreen() {
                         ))}
                     </ul>
                 )}
-                <div className='mon:mt-4 mon:flex mon:justify-end'>
-                    <Button size='small' onClick={() => setEditing({ input: { name: '', type: 'discord', config: {} } })}>
-                        Add channel
-                    </Button>
-                </div>
+                {channels.data && channels.data.length > 0 && <div className='mon:mt-4 mon:flex mon:justify-end'>{addButton}</div>}
             </TitledGreyBox>
 
             {editing && (

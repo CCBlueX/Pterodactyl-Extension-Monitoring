@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PageContentBlock, Spinner, Table, TitledGreyBox, httpErrorToHuman, toast } from '@pterodactyl/sdk';
+import { Badge, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, NamedIcon, PageContentBlock, ServerError, Spinner, Table, TitledGreyBox, httpErrorToHuman, toast } from '@pterodactyl/sdk';
 import { acknowledgeAlert, deleteGlobalRule, getAdmin, keys, saveGlobalRule, type AdminMonitoring, type Health, type NodeHealth, type RuleInput } from '../api';
 import AlertsTable from '../components/AlertsTable';
 import NodeCapacityCard from '../components/NodeCapacityCard';
-import Pill from '../components/Pill';
 import RulesBox from '../components/RulesBox';
 import StatTiles from '../components/StatTiles';
 import UsageBar from '../components/UsageBar';
@@ -21,6 +20,10 @@ export default function AdminScreen() {
     const removal = useMutation({ mutationFn: ({ id }: { id: number; done: () => void }) => deleteGlobalRule(id), onSuccess: (result, { done }) => (update(result), done()), onError });
     const acknowledging = useMutation({ mutationFn: acknowledgeAlert, onSuccess: update, onError });
 
+    if (data.isError && !data.data) {
+        return <ServerError title='Could not load monitoring' message={httpErrorToHuman(data.error)} onRetry={() => data.refetch()} />;
+    }
+
     return (
         <PageContentBlock title='Monitoring'>
             <header className='mon:mb-6'>
@@ -28,7 +31,7 @@ export default function AdminScreen() {
                 <p className='mon:mt-1 mon:text-sm mon:leading-relaxed mon:text-foreground/70'>Health of the panel, its nodes and servers. Sampled every {interval === 1 ? 'minute' : `${interval} minutes`}.</p>
             </header>
             {!data.data ? (
-                data.isError ? <p className='mon:text-sm mon:text-destructive'>{httpErrorToHuman(data.error)}</p> : <Spinner centered size={Spinner.Size.LARGE} />
+                <Spinner centered size={Spinner.Size.LARGE} />
             ) : (
                 <>
                     <StatTiles summary={data.data.health} />
@@ -76,46 +79,83 @@ export default function AdminScreen() {
 }
 
 const details = (node: NodeHealth) => (node.reachable === false ? `Down since ${formatAgo(node.down_since)}` : [node.os, node.cpu_threads && `${node.cpu_threads} threads`].filter(Boolean).join(' · '));
+const outdated = (node: NodeHealth) => Boolean(node.version && node.latest && node.version.replace(/^v/, '') !== node.latest.replace(/^v/, ''));
+const narrowDetails = (node: NodeHealth) => [`Wings ${node.version ?? '–'}${outdated(node) ? ` (${node.latest} available)` : ''}`, `${node.servers.running} / ${node.servers.total} running`].join(' · ');
+
+// Wings and Running fold into the node cell on phones.
+const WIDE_ONLY = 'mon:hidden mon:sm:table-cell';
 
 function NodesTable({ nodes }: { nodes: NodeHealth[] }) {
     return (
-        <Table
-            rows={nodes}
-            keyOf={(node) => String(node.id)}
-            emptyState='No nodes yet.'
-            columns={[
-                {
-                    id: 'name',
-                    label: 'Node',
-                    cell: (node) => (
-                        <div className='mon:min-w-0 mon:max-w-44 mon:sm:max-w-xs mon:lg:max-w-md'>
-                            <p className='mon:truncate mon:text-foreground' title={node.name}>
-                                {node.name}
-                            </p>
-                            <p className='mon:truncate mon:text-xs mon:text-muted-foreground' title={details(node)}>
-                                {details(node)}
-                            </p>
-                        </div>
-                    ),
-                },
-                {
-                    id: 'status',
-                    label: 'Status',
-                    cell: (node) => (node.reachable === null ? <Pill>Checking</Pill> : node.reachable ? <Pill tone='success'>Online</Pill> : <Pill tone='danger'>Offline</Pill>),
-                },
-                {
-                    id: 'wings',
-                    label: 'Wings',
-                    cell: (node) => (
-                        <span className='mon:flex mon:flex-wrap mon:items-center mon:gap-1'>
-                            {node.version ?? '–'}
-                            {node.version && node.latest && node.version.replace(/^v/, '') !== node.latest.replace(/^v/, '') && <Pill tone='warning'>{node.latest} available</Pill>}
-                        </span>
-                    ),
-                },
-                { id: 'servers', label: 'Running', cell: (node) => `${node.servers.running} / ${node.servers.total}` },
-            ]}
-        />
+        <div className='mon:min-w-0 mon:max-w-full mon:overflow-x-auto'>
+            <Table
+                rows={nodes}
+                keyOf={(node) => String(node.id)}
+                emptyState={
+                    <Empty size='compact'>
+                        <EmptyHeader>
+                            <EmptyMedia variant='icon'>
+                                <NamedIcon name='server' />
+                            </EmptyMedia>
+                            <EmptyTitle>No nodes</EmptyTitle>
+                            <EmptyDescription>Nodes appear here once they are added to the panel.</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                }
+                columns={[
+                    {
+                        id: 'name',
+                        label: 'Node',
+                        cell: (node) => (
+                            <div className='mon:min-w-0 mon:max-w-44 mon:sm:max-w-xs mon:lg:max-w-md'>
+                                <p className='mon:truncate mon:text-foreground' title={node.name}>
+                                    {node.name}
+                                </p>
+                                <p className='mon:truncate mon:text-xs mon:text-muted-foreground' title={details(node)}>
+                                    {details(node)}
+                                </p>
+                                <p className='mon:truncate mon:text-xs mon:text-muted-foreground mon:sm:hidden' title={narrowDetails(node)}>
+                                    {narrowDetails(node)}
+                                </p>
+                            </div>
+                        ),
+                    },
+                    {
+                        id: 'status',
+                        label: 'Status',
+                        cell: (node) =>
+                            node.reachable === null ? (
+                                <Badge variant='soft'>Checking</Badge>
+                            ) : node.reachable ? (
+                                <Badge variant='soft' tone='success'>
+                                    Online
+                                </Badge>
+                            ) : (
+                                <Badge variant='soft' tone='danger'>
+                                    Offline
+                                </Badge>
+                            ),
+                    },
+                    {
+                        id: 'wings',
+                        label: 'Wings',
+                        headerClassName: WIDE_ONLY,
+                        cellClassName: WIDE_ONLY,
+                        cell: (node) => (
+                            <span className='mon:flex mon:flex-wrap mon:items-center mon:gap-1'>
+                                {node.version ?? '–'}
+                                {outdated(node) && (
+                                    <Badge variant='soft' tone='warning' className='mon:whitespace-nowrap'>
+                                        {node.latest} available
+                                    </Badge>
+                                )}
+                            </span>
+                        ),
+                    },
+                    { id: 'servers', label: 'Running', headerClassName: WIDE_ONLY, cellClassName: WIDE_ONLY, cell: (node) => `${node.servers.running} / ${node.servers.total}` },
+                ]}
+            />
+        </div>
     );
 }
 
@@ -168,7 +208,16 @@ function PanelBox({ health }: { health: Health }) {
 }
 
 function JobsBox({ health }: { health: Health }) {
-    const status = (ok: boolean) => (ok ? <Pill tone='success'>OK</Pill> : <Pill tone='danger'>Late</Pill>);
+    const status = (ok: boolean) =>
+        ok ? (
+            <Badge variant='soft' tone='success'>
+                OK
+            </Badge>
+        ) : (
+            <Badge variant='soft' tone='danger'>
+                Late
+            </Badge>
+        );
 
     return (
         <TitledGreyBox title='Background jobs'>
@@ -182,7 +231,15 @@ function JobsBox({ health }: { health: Health }) {
                         </span>
                     ))}
                 </Row>
-                <Row label='Failed jobs'>{health.failed_jobs > 0 ? <Pill tone='warning'>{health.failed_jobs}</Pill> : '0'}</Row>
+                <Row label='Failed jobs'>
+                    {health.failed_jobs > 0 ? (
+                        <Badge variant='soft' tone='warning'>
+                            {health.failed_jobs}
+                        </Badge>
+                    ) : (
+                        '0'
+                    )}
+                </Row>
             </div>
         </TitledGreyBox>
     );

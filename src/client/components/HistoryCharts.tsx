@@ -1,4 +1,4 @@
-import { Button, NamedIcon, Spinner, Tooltip, httpErrorToHuman } from '@pterodactyl/sdk';
+import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, NamedIcon, Spinner, Tooltip, httpErrorToHuman } from '@pterodactyl/sdk';
 import type { History, Range } from '../api';
 import { formatBytes, formatMiB, formatTime } from '../lib/format';
 import AreaChart from './AreaChart';
@@ -22,16 +22,14 @@ export default function HistoryCharts({ history, error, range, onRange }: Props)
     return (
         <div className='mon:grid mon:grid-cols-1 mon:gap-4'>
             <div className='mon:flex mon:flex-col mon:gap-3 mon:sm:flex-row mon:sm:items-center mon:sm:justify-between'>
-                <p className='mon:min-w-0 mon:text-sm mon:text-muted-foreground'>
-                    {history?.uptime != null ? (
+                <p className='mon:min-w-0 mon:text-sm mon:text-muted-foreground mon:empty:hidden'>
+                    {history?.uptime != null && (
                         <>
                             <span className='mon:font-medium mon:text-foreground'>{history.uptime.toFixed(2)}%</span> uptime in the last {RANGES.find((item) => item.value === range)?.label}
                         </>
-                    ) : (
-                        'No samples yet. The first one arrives within a few minutes.'
                     )}
                 </p>
-                <div className='mon:flex mon:flex-wrap mon:gap-1' role='group' aria-label='Time range'>
+                <div className='mon:flex mon:flex-wrap mon:gap-1 mon:sm:ml-auto' role='group' aria-label='Time range'>
                     {RANGES.map((item) =>
                         item.value === range ? (
                             <Button key={item.value} size='small' aria-pressed>
@@ -47,6 +45,16 @@ export default function HistoryCharts({ history, error, range, onRange }: Props)
             </div>
             {!history ? (
                 error ? <p className='mon:text-sm mon:text-destructive'>{httpErrorToHuman(error)}</p> : <Spinner centered size={Spinner.Size.LARGE} />
+            ) : history.uptime === null ? (
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant='icon'>
+                            <NamedIcon name='chart-area' />
+                        </EmptyMedia>
+                        <EmptyTitle>No samples yet</EmptyTitle>
+                        <EmptyDescription>The first one arrives within a few minutes.</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             ) : (
                 <>
                     <UptimeStrip history={history} />

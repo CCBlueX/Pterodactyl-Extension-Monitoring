@@ -1,7 +1,6 @@
-import { Button, PanelLink, Table } from '@pterodactyl/sdk';
+import { Badge, Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, NamedIcon, PanelLink, Table } from '@pterodactyl/sdk';
 import type { Alert } from '../api';
 import { formatAgo } from '../lib/format';
-import Pill from './Pill';
 
 interface Props {
     alerts: Alert[];
@@ -16,13 +15,29 @@ export default function AlertsTable({ alerts, showSubject = false, canAcknowledg
         <Table
             rows={alerts}
             keyOf={(alert) => String(alert.id)}
-            emptyState='No alerts. Everything is fine.'
+            emptyState={
+                <Empty size='compact'>
+                    <EmptyHeader>
+                        <EmptyMedia variant='icon'>
+                            <NamedIcon name='bell-off' />
+                        </EmptyMedia>
+                        <EmptyTitle>No alerts</EmptyTitle>
+                        <EmptyDescription>Everything is fine.</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            }
             columns={[
                 {
                     id: 'status',
                     label: 'Status',
                     cell: (alert) =>
-                        alert.resolved_at ? <Pill tone='success'>Resolved</Pill> : alert.acknowledged_at ? <Pill tone='warning'>Seen</Pill> : <Pill tone='danger'>Open</Pill>,
+                        alert.resolved_at ? (
+                            <Badge variant='soft' tone='success'>Resolved</Badge>
+                        ) : alert.acknowledged_at ? (
+                            <Badge variant='soft' tone='warning'>Seen</Badge>
+                        ) : (
+                            <Badge variant='soft' tone='danger'>Open</Badge>
+                        ),
                 },
                 ...(showSubject
                     ? [
