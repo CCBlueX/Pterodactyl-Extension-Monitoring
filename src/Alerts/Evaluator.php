@@ -34,7 +34,7 @@ final readonly class Evaluator
     private function servers(Rule $rule, CarbonImmutable $now): void
     {
         $interval = $this->settings->interval();
-        $servers = Server::query()->when($rule->server_id, static fn ($query, int $id) => $query->whereKey($id))->get(['id', 'name', 'uuid', 'cpu', 'memory', 'disk']);
+        $servers = Server::query()->without('allocation')->when($rule->server_id, static fn ($query, int $id) => $query->whereKey($id))->get(['id', 'name', 'uuid', 'cpu', 'memory', 'disk']);
         $since = $now->subMinutes(max($rule->minutes, $interval))->subSeconds(30);
 
         $samples = Sample::query()
