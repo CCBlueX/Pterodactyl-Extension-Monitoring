@@ -26,7 +26,11 @@ final readonly class Host
         $limit = @file_get_contents('/sys/fs/cgroup/memory.max');
         $current = @file_get_contents('/sys/fs/cgroup/memory.current');
 
-        return $limit === false || $current === false || mb_trim($limit) === 'max' ? null : ['used' => (int) $current, 'total' => (int) $limit];
+        if ($limit === false || $current === false || mb_trim($limit) === 'max') {
+            return null;
+        }
+
+        return ['used' => Proc::containerUsed($current, (string) @file_get_contents('/sys/fs/cgroup/memory.stat')), 'total' => (int) $limit];
     }
 
     /** @return array{total: int, free: int}|null Bytes. */

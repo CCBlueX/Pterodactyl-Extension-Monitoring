@@ -18,6 +18,15 @@ final class ProcTest extends TestCase
         $this->assertNull(Proc::memory("MemTotal: 1 kB\n"));
     }
 
+    public function test_leaves_reclaimable_page_cache_out_of_container_memory(): void
+    {
+        $stat = "anon 4000000000\nfile 15000000000\nactive_file 3000000000\ninactive_file 12000000000\n";
+
+        $this->assertSame(8000000000, Proc::containerUsed("20000000000\n", $stat));
+        $this->assertSame(20000000000, Proc::containerUsed('20000000000', ''));
+        $this->assertSame(0, Proc::containerUsed('100', "inactive_file 500\n"));
+    }
+
     public function test_reads_default_gateways(): void
     {
         $route = "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT\n"

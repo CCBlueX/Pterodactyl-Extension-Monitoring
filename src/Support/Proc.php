@@ -22,6 +22,16 @@ final class Proc
     }
 
     /**
+     * Container memory in use the way `docker stats` counts it: page cache the kernel can drop (inactive_file) is left out.
+     */
+    public static function containerUsed(string $current, string $stat): int
+    {
+        $inactive = preg_match('/^inactive_file\s+(\d+)$/m', $stat, $match) ? (int) $match[1] : 0;
+
+        return max(0, (int) $current - $inactive);
+    }
+
+    /**
      * Interface and IPv4 gateway of each default route in /proc/net/route.
      *
      * @return list<array{interface: string, gateway: string}>
